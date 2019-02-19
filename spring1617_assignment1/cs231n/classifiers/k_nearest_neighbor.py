@@ -1,6 +1,7 @@
 import numpy as np
 from past.builtins import xrange
-
+import math
+from scipy import stats
 
 class KNearestNeighbor(object):
     """ a kNN classifier with L2 distance """
@@ -73,10 +74,35 @@ class KNearestNeighbor(object):
                 # training point, and store the result in dists[i, j]. You should   #
                 # not use a loop over dimension.                                    #
                 #####################################################################
-                pass
+
+                '''
+                even though this was what the question asked for, it is not going to be used after it was checked
+                due to slow run time effeciency 
+                
+                rowSum = 0
+                for element in range(X[i].size):
+                    rowSum += (X[i][element] - self.X_train[j][element])**2
+                dists[i][j] = math.sqrt(rowSum)
+
+                # assert dists[i][j] == np.linalg.norm(X[i] - self.X_train[j]), "incorrect l2 distance calculation"
+                '''
+
+                '''
+                more efficent way but using loop over dimension
+                #dists[i][j] = np.sqrt(np.sum((X[i] - self.X_train[j]) ** 2)) # nupy sqrt does elementwise squareroot
+                '''
+
+                ''' 
+                most efficent way using numpy 
+                '''
+                dists[i][j] = np.linalg.norm(X[i] - self.X_train[j])
+
+                # assert np.linalg.norm(X[i] - self.X_train[j]) == dists[i][j], "incorrect l2 distance calculation"
+
                 #####################################################################
                 #                       END OF YOUR CODE                            #
                 #####################################################################
+
         return dists
 
     def compute_distances_one_loop(self, X):
@@ -155,6 +181,8 @@ class KNearestNeighbor(object):
             # neighbors. Store these labels in closest_y.                           #
             # Hint: Look up the function numpy.argsort.                             #
             #########################################################################
+            sortedIndicies = np.argsort(dists[i])
+            closest_y = self.y_train[sortedIndicies]
             pass
             #########################################################################
             # TODO:                                                                 #
@@ -163,10 +191,62 @@ class KNearestNeighbor(object):
             # Store this label in y_pred[i]. Break ties by choosing the smaller     #
             # label.                                                                #
             #########################################################################
+
+            topKPred = closest_y[:k]
+            y_pred[i] = stats.mode(topKPred).mode
             pass
-            #########################################################################
-            #                           END OF YOUR CODE                            #
-            #########################################################################
+        #########################################################################
+        #                           END OF YOUR CODE                            #
+        #########################################################################
 
         return y_pred
 
+
+
+def test_main():
+    #test
+    # Load the raw CIFAR-10 data.
+    import os
+    import random
+    import numpy as np
+    from cs231n.data_utils import load_CIFAR10
+    import matplotlib.pyplot as plt
+
+    cifar10_dir = os.path.dirname('C:\\Users\\Matthew\\Documents\\jerusml_deeplearning\\assignments\\spring1617_assignment1\\cs231n\datasets\\cifar-10-python\\')
+    X_train, y_train, X_test, y_test =  load_CIFAR10(cifar10_dir)
+    num_training = 5000
+    mask = list(range(num_training))
+    X_train = X_train[mask]
+    y_train = y_train[mask]
+
+    num_test = 500
+    mask = list(range(num_test))
+    X_test = X_test[mask]
+    y_test = y_test[mask]
+
+    # Reshape the image data into rows
+    X_train = np.reshape(X_train, (X_train.shape[0], -1))
+    X_test = np.reshape(X_test, (X_test.shape[0], -1))
+
+    #from cs231n.classifiers import KNearestNeighbor
+
+    # Create a kNN classifier instance.
+    # Remember that training a kNN classifier is a noop:
+    # the Classifier simply remembers the data and does no further processing
+    classifier = KNearestNeighbor()
+    classifier.train(X_train, y_train)
+
+    dists = classifier.compute_distances_two_loops(X_test)
+
+    # Now implement the function predict_labels and run the code below:
+    # We use k = 1 (which is Nearest Neighbor).
+    y_test_pred = classifier.predict_labels(dists, k=1)
+
+    # Compute and print the fraction of correctly predicted examples
+    num_correct = np.sum(y_test_pred == y_test)
+    accuracy = float(num_correct) / num_test
+    print('Got %d / %d correct => accuracy: %f' % (num_correct, num_test, accuracy))
+
+
+
+test_main()

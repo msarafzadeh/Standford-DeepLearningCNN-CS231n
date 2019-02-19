@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/spring1617_assignment1_knn.iml" filepath="$PROJECT_DIR$/.idea/spring1617_assignment1_knn.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/spring1617_assignment1.iml" filepath="$PROJECT_DIR$/.idea/spring1617_assignment1.iml" />
     </modules>
   </component>
 </project>

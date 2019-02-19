@@ -24,6 +24,8 @@ def load_CIFAR_batch(filename):
     Y = np.array(Y)
     return X, Y
 
+
+# noinspection PyPackageRequirements
 def load_CIFAR10(ROOT):
   """ load all of cifar """
   xs = []
