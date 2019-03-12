@@ -75,30 +75,17 @@ class KNearestNeighbor(object):
                 # not use a loop over dimension.                                    #
                 #####################################################################
 
+                squareOfDiff = np.square(X[i] - self.X_train[j])
+                dists[i, j] = np.sqrt(np.sum(squareOfDiff))
                 '''
-                even though this was what the question asked for, it is not going to be used after it was checked
-                due to slow run time effeciency 
+                even though this was what the question asked for, it is not going to be used 
+                due to slow running time 
                 
                 rowSum = 0
                 for element in range(X[i].size):
                     rowSum += (X[i][element] - self.X_train[j][element])**2
                 dists[i][j] = math.sqrt(rowSum)
-
-                # assert dists[i][j] == np.linalg.norm(X[i] - self.X_train[j]), "incorrect l2 distance calculation"
                 '''
-
-                '''
-                more efficent way but using loop over dimension
-                #dists[i][j] = np.sqrt(np.sum((X[i] - self.X_train[j]) ** 2)) # nupy sqrt does elementwise squareroot
-                '''
-
-                ''' 
-                most efficent way using numpy 
-                '''
-                dists[i][j] = np.linalg.norm(X[i] - self.X_train[j])
-
-                # assert np.linalg.norm(X[i] - self.X_train[j]) == dists[i][j], "incorrect l2 distance calculation"
-
                 #####################################################################
                 #                       END OF YOUR CODE                            #
                 #####################################################################
@@ -121,7 +108,9 @@ class KNearestNeighbor(object):
             # Compute the l2 distance between the ith test point and all training #
             # points, and store the result in dists[i, :].                        #
             #######################################################################
-            pass
+            testRow = X[i]  # shape (3072)
+            squareOfDiff = np.square(self.X_train - testRow)  # shape (5000,3072)
+            dists[i, :] = np.sqrt(np.sum(squareOfDiff, axis=1))  # dists.shape: (500,5000), dists[i,:].shape (5000,)
             #######################################################################
             #                         END OF YOUR CODE                            #
             #######################################################################
@@ -149,6 +138,20 @@ class KNearestNeighbor(object):
         # HINT: Try to formulate the l2 distance using matrix multiplication    #
         #       and two broadcast sums.                                         #
         #########################################################################
+
+        # going for: (a-b)^2 = a^2 -2ab +b^2:
+        a = X
+        b = self.X_train
+
+        aSq = a*a
+        aSqSum = np.sum(aSq, axis=1).reshape((aSq.shape[0], 1)) #axis 0 is on columns and axis 1 is on rows
+
+        bSq = b*b
+        bSqSum = np.sum(bSq, axis=1) #axis 0 is on columns and axis 1 is on rows
+
+        aDotb = np.dot(a,b.T) # dot product returns a single number
+
+        dists = np.sqrt(aSqSum - 2*aDotb + bSqSum)
         pass
         #########################################################################
         #                         END OF YOUR CODE                              #
@@ -228,7 +231,6 @@ def test_main():
     X_train = np.reshape(X_train, (X_train.shape[0], -1))
     X_test = np.reshape(X_test, (X_test.shape[0], -1))
 
-    #from cs231n.classifiers import KNearestNeighbor
 
     # Create a kNN classifier instance.
     # Remember that training a kNN classifier is a noop:
@@ -236,17 +238,77 @@ def test_main():
     classifier = KNearestNeighbor()
     classifier.train(X_train, y_train)
 
-    dists = classifier.compute_distances_two_loops(X_test)
+############## TEST CODE FROM HERE  ##########---------------------------------------------################################
 
-    # Now implement the function predict_labels and run the code below:
-    # We use k = 1 (which is Nearest Neighbor).
-    y_test_pred = classifier.predict_labels(dists, k=1)
+    num_folds = 5
+    k_choices = [1, 3, 5, 8, 10, 12, 15, 20, 50, 100]
 
-    # Compute and print the fraction of correctly predicted examples
-    num_correct = np.sum(y_test_pred == y_test)
-    accuracy = float(num_correct) / num_test
-    print('Got %d / %d correct => accuracy: %f' % (num_correct, num_test, accuracy))
+    X_train_folds = []
+    y_train_folds = []
+    ################################################################################
+    # TODO:                                                                        #
+    # Split up the training data into folds. After splitting, X_train_folds and    #
+    # y_train_folds should each be lists of length num_folds, where                #
+    # y_train_folds[i] is the label vector for the points in X_train_folds[i].     #
+    # Hint: Look up the numpy array_split function.                                #
+    ################################################################################
+    X_train_folds = np.split(X_train, num_folds)
+    y_train_folds = np.split(y_train, num_folds)
+
+    pass
+    ################################################################################
+    #                                 END OF YOUR CODE                             #
+    ################################################################################
+
+    # A dictionary holding the accuracies for different values of k that we find
+    # when running cross-validation. After running cross-validation,
+    # k_to_accuracies[k] should be a list of length num_folds giving the different
+    # accuracy values that we found when using that value of k.
+    k_to_accuracies = {}
+
+    ################################################################################
+    # TODO:                                                                        #
+    # Perform k-fold cross validation to find the best value of k. For each        #
+    # possible value of k, run the k-nearest-neighbor algorithm num_folds times,   #
+    # where in each case you use all but one of the folds as training data and the #
+    # last fold as a validation set. Store the accuracies for all fold and all     #
+    # values of k in the k_to_accuracies dictionary.                               #
+    ################################################################################
+
+    numOfFoldsList = range(num_folds)
+
+    for k in k_choices:
+        accuracy = []
+        for i in numOfFoldsList:
+            filteredList = list(filter(lambda x: x != i, numOfFoldsList))
+
+            cvTrainX = [X_train_folds[j] for j in filteredList]
+            cvTrainX = np.concatenate(cvTrainX, axis=0)
+            cvTrainY = [y_train_folds[j] for j in filteredList]
+            cvTrainY = np.concatenate(cvTrainY, axis=0)
+
+            cvTestX = X_train_folds[i]
+            cvTestY = y_train_folds[i]
+
+            classifier = KNearestNeighbor()
+
+            classifier.train(cvTrainX, cvTrainY)
+            y_test_pred = classifier.predict(cvTestX, k=k)
+
+            num_correct = np.sum(y_test_pred == cvTestY)
+            accuracy.append(float(num_correct) / y_test_pred.size)
+
+        k_to_accuracies[k] = accuracy
+
+    ################################################################################
+    #                                 END OF YOUR CODE                             #
+    ################################################################################
+
+    # Print out the computed accuracies
+    for k in sorted(k_to_accuracies):
+        for accuracy in k_to_accuracies[k]:
+            print('k = %d, accuracy = %f' % (k, accuracy))
 
 
 
-test_main()
+#test_main()
