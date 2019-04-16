@@ -51,10 +51,10 @@ def svm_loss_naive(W, X, y, reg):
         loss += margin
         countIncorrects +=1
 
-      # gradient update for incorrect rows
-      dW[:,j] += 1 * X[i]
+        # gradient update for incorrect rows
+        dW[:,j] += 1 * X[i]
 
-    # gradient update for the correct row
+    # gradient update for the correct rows
     dW[:,y[i]] += -1 * countIncorrects * X[i]
 
   #original code
@@ -150,13 +150,18 @@ def svm_loss_vectorized(W, X, y, reg):
   #############################################################################
 
   X_mask = np.copy(margins)
+
+  # gradient only with respect to the row of W that corresponds to the correct class
+  # column maps to class, row maps to sample
   X_mask[margins > 0] = 1
-  pass
-  #X_mask = np.zeros(margins.shape)
-  #[margins > 0] = 1
+  # for each sample, find the total number of incorrect classes (margin > 0)
+  incorrect_counts = np.sum(X_mask, axis=1)
+  X_mask[np.arange(num_train), y] = -incorrect_counts
 
+  dW = np.dot(X.T,X_mask)
 
-  pass
+  dW /= num_train # average out weights
+  dW += reg * 2 * W # regularize the weights
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -231,8 +236,8 @@ if __name__ == "__main__":
   # generate a random SVM weight matrix of small numbers
   W = np.random.randn(3073, 10) * 0.0001
 
-  #lossNaive, grad = svm_loss_naive(W, X_dev, y_dev, 0.5)
-  #print('  loss: %f' % (lossNaive,))
+  lossNaive, gradNaive = svm_loss_naive(W, X_dev, y_dev, 0.000005)
+  print('  loss naive: %f' % (lossNaive,))
 
-  lossVectorized, _ = svm_loss_vectorized(W, X_dev, y_dev, 0.000005)
-  print('  loss: %f' % (lossVectorized,))
+  lossVectorized, gradVectorized = svm_loss_vectorized(W, X_dev, y_dev, 0.000005)
+  print('  loss vecrorized: %f' % (lossVectorized,))
