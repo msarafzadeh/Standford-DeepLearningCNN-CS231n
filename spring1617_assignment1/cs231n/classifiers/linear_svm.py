@@ -7,14 +7,22 @@ import numpy as np
 from cs231n.data_utils import load_CIFAR10
 import matplotlib.pyplot as plt
 
+
+'''
+Linear Support Vector Classification.
+
+Similar to SVC with parameter kernel=’linear’, but implemented in terms of liblinear rather than libsvm, so it has more flexibility in the choice of penalties and loss functions and should scale better to large numbers of samples.
+'''
+
+
 # noinspection PyPackageRequirements
 def svm_loss_naive(W, X, y, reg):
   """
-  Structured SVM loss function, naive implementation (with loops).
 
   Inputs have dimension D, there are C classes, and we operate on minibatches
   of N examples.
 
+  Structured SVM loss function, naive implementation (with loops).
   Inputs:
   - W: A numpy array of shape (D, C) containing weights.
   - X: A numpy array of shape (N, D) containing a minibatch of data.
@@ -232,12 +240,18 @@ if __name__ == "__main__":
   X_test = np.hstack([X_test, np.ones((X_test.shape[0], 1))])
   X_dev = np.hstack([X_dev, np.ones((X_dev.shape[0], 1))])
 
+  # In the file linear_classifier.py, implement SGD in the function
+  # LinearClassifier.train() and then run it with the code below.
+  from cs231n.classifiers import LinearSVM
 
-  # generate a random SVM weight matrix of small numbers
-  W = np.random.randn(3073, 10) * 0.0001
+  svm = LinearSVM()
+  loss_hist = svm.train(X_train, y_train, learning_rate=1e-7, reg=2.5e4,
+                        num_iters=1500, verbose=True)
 
-  lossNaive, gradNaive = svm_loss_naive(W, X_dev, y_dev, 0.000005)
-  print('  loss naive: %f' % (lossNaive,))
 
-  lossVectorized, gradVectorized = svm_loss_vectorized(W, X_dev, y_dev, 0.000005)
-  print('  loss vecrorized: %f' % (lossVectorized,))
+  # Write the LinearSVM.predict function and evaluate the performance on both the
+  # training and validation set
+  y_train_pred = svm.predict(X_train)
+  print('training accuracy: %f' % (np.mean(y_train == y_train_pred), ))
+  y_val_pred = svm.predict(X_val)
+  print('validation accuracy: %f' % (np.mean(y_val == y_val_pred), ))
