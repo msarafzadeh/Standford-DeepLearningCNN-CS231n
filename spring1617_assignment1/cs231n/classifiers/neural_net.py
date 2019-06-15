@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import numpy as np
 import matplotlib.pyplot as plt
+from numpy.core.multiarray import ndarray
 from past.builtins import xrange
 
 class TwoLayerNet(object):
@@ -76,11 +77,17 @@ class TwoLayerNet(object):
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
+
+    h_1 = np.dot(X,W1) + b1
+    a_1 = np.maximum(0,h_1) # pass through ReLU activation function
+    h_2 = np.dot(a_1,W2) + b2
+    scores = h_2
+
     pass
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
-    
+
     # If the targets are not given then jump out, we're done
     if y is None:
       return scores
@@ -93,6 +100,24 @@ class TwoLayerNet(object):
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
+
+    num_train = X.shape[0]
+
+    #normalize to avoid big number division errors
+    scores -= scores.max()
+
+    # compute the class probabilities
+    exp_scores = np.exp(scores)
+    probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
+
+    # average cross-entropy loss
+    corect_logprobs = -np.log(probs[range(N), y]) # loss is calculated only with the correct class probability
+    data_loss = np.sum(corect_logprobs) / N
+
+    # regularization
+    reg_loss = reg * np.sum(W1 * W1) + reg * np.sum(W2 * W2)
+    loss = data_loss + reg_loss
+
     pass
     #############################################################################
     #                              END OF YOUR CODE                             #
@@ -105,6 +130,29 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
+
+    # compute the gradient on the softmax scores
+    dscores = probs
+    dscores[range(N), y] -= 1 # the scores of the correct classes - 1 (pi - yi . yi =1)
+    dscores /= N # so dscores is the gradient of the loss function which is backproprogated to H2
+
+    # back prop into W2 and b2 (last layer before the softmax loss)
+    grads['b2'] = np.sum(dscores, axis=0) # gradient is the same after addition / subtraction
+    grads['W2'] = np.dot(a_1.T,dscores) # dL/dW2 = dL/dH2 * dH2/dW2 = dscores * a_1
+
+    # next backprop into hidden layer 1
+    h_1_layer_backprop = np.dot(dscores, W2.T) # dL/dA = dL/dH2 * dH2/dA = dscores * w2
+    # backprop the ReLU non-linearity
+    h_1_layer_backprop[a_1 <= 0] = 0 # gradient of max but routes the gradients to the >0
+
+    #back prop into input layer
+    grads['W1'] = np.dot(X.T,h_1_layer_backprop)
+    grads['b1'] = np.sum(h_1_layer_backprop, axis=0)
+
+    # add regularization contribution to each set of weights. (biases don't have a regularization parameter. read in notes that it doesn't even make a significant )
+    grads['W2'] += reg * 2 * W2
+    grads['W1'] += reg * 2 * W1
+
     pass
     #############################################################################
     #                              END OF YOUR CODE                             #
@@ -149,6 +197,9 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
+
+      randSamples = np.random.choice(num_train,size=batch_size,replace=True)
+
       pass
       #########################################################################
       #                             END OF YOUR CODE                          #
@@ -217,3 +268,30 @@ class TwoLayerNet(object):
     return y_pred
 
 
+if __name__ == '__main__':
+  # Create a small net and some toy data to check your implementations.
+  # Note that we set the random seed for repeatable experiments.
+
+  input_size = 4
+  hidden_size = 10
+  num_classes = 3
+  num_inputs = 5
+
+
+  def init_toy_model():
+    np.random.seed(0)
+    return TwoLayerNet(input_size, hidden_size, num_classes, std=1e-1)
+
+
+  def init_toy_data():
+    np.random.seed(1)
+    X = 10 * np.random.randn(num_inputs, input_size)
+    y = np.array([0, 1, 2, 2, 1])
+    return X, y
+
+
+#net = init_toy_model()
+#X, y = init_toy_data()
+
+
+#loss, grads = net.loss(X, y, reg=0.05)
